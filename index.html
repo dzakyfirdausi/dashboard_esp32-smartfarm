@@ -200,7 +200,7 @@
               <svg viewBox="0 0 240 140" class="gauge">
                 <path class="gauge-ticks" d="M14 124 A106 106 0 0 1 226 124" pathLength="100"/>
                 <path class="gauge-track" d="M30 124 A90 90 0 0 1 210 124" pathLength="100"/>
-                <path id="gaugeArc" class="gauge-arc" d="M30 124 A90 90 0 0 1 210 124" pathLength="100" stroke-dasharray="0 100"/>
+                <path id="gaugeArc" class="gauge-arc" d="M30 124 A90 90 0 0 1 210 124" pathLength="100" stroke-dasharray="0 999" style="opacity: 0;"/>
                 <circle id="gaugeKnob" cx="30" cy="124" r="8" class="gauge-knob"/>
               </svg>
               <div class="gauge-value">
@@ -246,9 +246,8 @@
               <span class="big-num"><span class="muted-sm">Sisa:</span> <strong id="sisaMemori">--%</strong></span>
             </div>
             <div class="tick-bars" id="barMemori"></div>
-            <a href="/download-csv" download="data_log.csv" class="btn download-btn">
-              <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
-              Unduh Log Data (.CSV)
+            <a id="btnUnduhCsv" class="btn download-btn is-disabled" aria-disabled="true">
+              &#128274; Belum Ada Data (.CSV)
             </a>
           </div>
         </div>
@@ -283,30 +282,6 @@
         </div>
       </section>
     </div>
-
-    <!-- ============ NAVIGATION BAR BAWAH ============ -->
-    <nav class="bottom-nav">
-      <a href="#top" class="nav-link active">
-        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>
-        <span>Dashboard</span>
-      </a>
-      <a href="#blokKontrol" class="nav-link">
-        <svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
-        <span>Kontrol</span>
-      </a>
-      <a href="#blokGrafik" class="nav-link">
-        <svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
-        <span>Grafik</span>
-      </a>
-      <a href="#blokMemori" class="nav-link">
-        <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
-        <span>Laporan</span>
-      </a>
-      <a href="/download-csv" download="data_log.csv" class="nav-link">
-        <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
-        <span>Unduh CSV</span>
-      </a>
-    </nav>
   </div>
 
   <script src="app.js"></script>
