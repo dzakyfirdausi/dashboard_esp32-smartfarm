@@ -1,5 +1,5 @@
 // =====================================================================
-// 1. STATE GLOBAL
+// 1. STATE GLOBAL & IKON SVG
 // =====================================================================
 let isAuto = true;
 let isPumpOn = false;
@@ -12,6 +12,15 @@ let isFetchingCsv = false;
 
 const STEP_DASAR = 5;     // Sumbu waktu grafik selalu kelipatan 5 menit (0, 5, 10, 15, ...)
 const JUMLAH_BAR_MEMORI = 26;
+
+const ICONS = {
+  check: '<svg viewBox="0 0 24 24" class="seg-icon" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
+  auto: '<svg viewBox="0 0 24 24" class="seg-icon" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>',
+  sliders: '<svg viewBox="0 0 24 24" class="seg-icon" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  power: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
+  download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>'
+};
 
 // =====================================================================
 // 2. KOMUNIKASI API
@@ -35,7 +44,7 @@ function fetchLiveStatus(force = false) {
 
       isAuto = Boolean(data.auto);
       isPumpOn = Boolean(data.pompa);
-      const kelembapan = clamp(Number(data.kelembapan) || 0, 0, 100);
+      const kelembapan = clamp(Math.round(Number(data.kelembapan) || 0), 0, 100);
       const minBaru = Number(data.min) || 30;
       const maxBaru = Number(data.max) || 50;
       const batasBerubah = minBaru !== batasMin || maxBaru !== batasMax;
@@ -50,12 +59,13 @@ function fetchLiveStatus(force = false) {
       if (barEl) {
         barEl.style.width = kelembapan + '%';
         barEl.style.backgroundColor = warna;
+        const track = barEl.parentElement;
+        if (track) track.setAttribute('aria-valuenow', String(kelembapan));
       }
       updateGauge(kelembapan, warna);
 
       // B. Kondisi tanah berdasarkan ambang hysteresis aktif
       const boxTanah = document.getElementById('boxTanah');
-      boxTanah.className = 'status-box';
       let kondisi;
       if (kelembapan < batasMin) {
         kondisi = 'kering';
@@ -67,21 +77,20 @@ function fetchLiveStatus(force = false) {
         kondisi = 'normal';
         setText('statusTanah', 'IDEAL / NORMAL');
       }
-      boxTanah.classList.add(kondisi);
+      if (boxTanah) {
+        boxTanah.className = 'status-box ' + kondisi;
+      }
 
-      setText('infoBatas', `Batas: <${batasMin}% Kering | \u2265${batasMax}% Lembap`);
+      setText('infoBatas', `Batas: <${batasMin}% Kering · \u2265${batasMax}% Lembap`);
       setText('infoMin', `< ${batasMin}%`);
       setText('infoMax', `\u2265 ${batasMax}%`);
 
       // C. Status pompa & mode
       const boxPompa = document.getElementById('boxPompa');
-      boxPompa.className = 'status-box';
-      if (isPumpOn) {
-        setText('statusPompa', 'ON / MENYIRAM');
-        boxPompa.classList.add('pompa-on');
-      } else {
-        setText('statusPompa', 'OFF / STANDBY');
+      if (boxPompa) {
+        boxPompa.className = 'status-box' + (isPumpOn ? ' pompa-on' : '');
       }
+      setText('statusPompa', isPumpOn ? 'ON / MENYIRAM' : 'OFF / STANDBY');
       setText('statusMode', isAuto ? 'Otomatis' : 'Manual');
       const spray = document.getElementById('semprotanAir');
       if (spray) spray.classList.toggle('on', isPumpOn);
@@ -103,7 +112,7 @@ function fetchLiveStatus(force = false) {
 
       // F. Sisa memori flash (LittleFS)
       if (data.memoriFree !== undefined) {
-        const free = clamp(Number(data.memoriFree) || 0, 0, 100);
+        const free = clamp(Math.round(Number(data.memoriFree) || 0), 0, 100);
         setText('sisaMemori', `${free}%`);
         updateMemoryBars(free);
       }
@@ -220,7 +229,7 @@ function parseWaktu(raw) {
 }
 
 /** Lebar minimum per label waktu (px) agar 0, 5, 10, ... tidak berdesakan */
-const PX_PER_LABEL = 30;
+const PX_PER_LABEL = 32;
 let jumlahLabelTerakhir = 13;
 
 /** Lebarkan area grafik bila label banyak (area bisa digeser horizontal) */
@@ -250,6 +259,8 @@ function drawChart(points) {
   const canvas = document.getElementById('grafikKelembapan');
   if (!canvas || typeof Chart === 'undefined') return;
 
+  const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   // Sumbu X dimulai dari 0 dan berakhir di kelipatan 5 berikutnya (minimal s/d 60 menit)
   let xMin = 0, xMax = 60;
   if (points.length) {
@@ -259,10 +270,10 @@ function drawChart(points) {
   }
   aturLebarGrafik((xMax - xMin) / STEP_DASAR + 1);
 
-  const jumlahTerbaru = 12; // 12 x 5 menit = 1 jam terakhir disorot hijau
+  const jumlahTerbaru = 12; // 12 x 5 menit = 1 jam terakhir disorot hijau utama
   const barColors = points.map((p, i) => {
-    if (p.y < batasMin) return '#f2b8b5';
-    return i >= points.length - jumlahTerbaru ? '#2e9e5e' : '#cfe5d8';
+    if (p.y < batasMin) return '#f87171';
+    return i >= points.length - jumlahTerbaru ? '#15803d' : '#b7dec6';
   });
 
   const garisBatas = (nilai) => [{ x: xMin, y: nilai }, { x: xMax, y: nilai }];
@@ -272,8 +283,8 @@ function drawChart(points) {
       type: 'line',
       label: 'Rata-rata bergerak',
       data: movingAverage(points, 5),
-      borderColor: '#1f7a47',
-      borderWidth: 2,
+      borderColor: '#0f5328',
+      borderWidth: 2.2,
       pointRadius: 0,
       pointHoverRadius: 4,
       tension: 0.4,
@@ -283,7 +294,7 @@ function drawChart(points) {
       type: 'line',
       label: `Batas lembap (${batasMax}%)`,
       data: garisBatas(batasMax),
-      borderColor: '#f59e0b',
+      borderColor: '#d97706',
       borderDash: [6, 5],
       borderWidth: 1.5,
       pointRadius: 0,
@@ -293,7 +304,7 @@ function drawChart(points) {
       type: 'line',
       label: `Batas kering (${batasMin}%)`,
       data: garisBatas(batasMin),
-      borderColor: '#ef4444',
+      borderColor: '#dc2626',
       borderDash: [6, 5],
       borderWidth: 1.5,
       pointRadius: 0,
@@ -304,10 +315,10 @@ function drawChart(points) {
       label: 'Kelembapan Tanah (%)',
       data: points,
       backgroundColor: barColors,
-      hoverBackgroundColor: '#1f7a47',
-      borderRadius: 3,
-      barPercentage: 0.7,
-      categoryPercentage: 1,
+      hoverBackgroundColor: '#115e2d',
+      borderRadius: 4,
+      barPercentage: 0.68,
+      categoryPercentage: 0.96,
       order: 2
     }
   ];
@@ -316,6 +327,7 @@ function drawChart(points) {
     chartInstance.data.datasets = datasets;
     chartInstance.options.scales.x.min = xMin;
     chartInstance.options.scales.x.max = xMax;
+    chartInstance.options.animation.duration = prefersReducedMotion ? 0 : 400;
     chartInstance.resize();
     chartInstance.update();
     geserKeDataTerbaru();
@@ -327,7 +339,7 @@ function drawChart(points) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 500 },
+      animation: { duration: prefersReducedMotion ? 0 : 450 },
       interaction: { mode: 'nearest', axis: 'x', intersect: false },
       scales: {
         x: {
@@ -336,7 +348,7 @@ function drawChart(points) {
           max: xMax,
           offset: false,
           grid: { display: false },
-          border: { color: '#e8ecea' },
+          border: { color: '#d8e3dc' },
           // Tick selalu tiap 5 menit: 0, 5, 10, 15, 20, ...
           afterBuildTicks: (axis) => {
             const start = Math.ceil(axis.min / STEP_DASAR) * STEP_DASAR;
@@ -347,24 +359,36 @@ function drawChart(points) {
           ticks: {
             autoSkip: false,
             maxRotation: 0,
-            color: '#7b8580',
-            font: { size: 11 },
+            color: '#43564b',
+            font: { size: 11, weight: '500' },
             callback: (value) => String(Math.round(value))
           },
-          title: { display: true, text: 'Waktu Pencatatan (menit)', color: '#7b8580', font: { size: 11 } }
+          title: {
+            display: true,
+            text: 'Waktu Pencatatan (menit)',
+            color: '#43564b',
+            font: { size: 11, weight: '600' }
+          }
         },
         y: {
           min: 0,
           max: 100,
-          ticks: { stepSize: 25, color: '#7b8580', font: { size: 11 }, callback: (v) => v + '%' },
-          grid: { color: '#f0f2f1' },
+          ticks: {
+            stepSize: 25,
+            color: '#43564b',
+            font: { size: 11, weight: '500' },
+            callback: (v) => v + '%'
+          },
+          grid: { color: '#ebf1ed' },
           border: { display: false }
         }
       },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1d2420',
+          backgroundColor: '#112218',
+          titleColor: '#ffffff',
+          bodyColor: '#e2eee7',
           padding: 10,
           cornerRadius: 10,
           filter: (item) => item.datasetIndex === 0 || item.datasetIndex === 3,
@@ -413,7 +437,7 @@ function updateGauge(nilai, warna) {
   const knob = document.getElementById('gaugeKnob');
   if (!arc || !knob) return;
   arc.setAttribute('stroke-dasharray', `${nilai} 999`);
-  arc.style.opacity = nilai > 0 ? '0.9' : '0';
+  arc.style.opacity = nilai > 0 ? '0.95' : '0';
   arc.style.stroke = warna;
   const sudut = Math.PI * (1 - nilai / 100);
   knob.setAttribute('cx', (120 + 90 * Math.cos(sudut)).toFixed(1));
@@ -444,45 +468,54 @@ function syncControlButtons() {
   const btnAuto = document.getElementById('btnAuto');
   const btnManual = document.getElementById('btnManual');
   const btnPompa = document.getElementById('btnPompaManual');
+  if (!btnAuto || !btnManual || !btnPompa) return;
 
   btnAuto.classList.toggle('active', isAuto);
   btnManual.classList.toggle('active', !isAuto);
-  btnAuto.innerHTML = isAuto ? '&#10003; Otomatis' : 'Otomatis';
-  btnManual.innerHTML = !isAuto ? '&#10003; Manual' : 'Manual';
+  btnAuto.setAttribute('aria-pressed', String(isAuto));
+  btnManual.setAttribute('aria-pressed', String(!isAuto));
+
+  const htmlAuto = `${isAuto ? ICONS.check : ICONS.auto}<span>Otomatis</span>`;
+  const htmlManual = `${!isAuto ? ICONS.check : ICONS.sliders}<span>Manual</span>`;
+  if (btnAuto.innerHTML !== htmlAuto) btnAuto.innerHTML = htmlAuto;
+  if (btnManual.innerHTML !== htmlManual) btnManual.innerHTML = htmlManual;
 
   if (isAuto) {
     btnPompa.disabled = true;
     btnPompa.classList.remove('pump-active');
-    btnPompa.innerHTML = '&#128274; Pompa Terkunci (Mode Otomatis)';
+    const htmlLocked = `${ICONS.lock}<span>Pompa Terkunci (Mode Otomatis)</span>`;
+    if (btnPompa.innerHTML !== htmlLocked) btnPompa.innerHTML = htmlLocked;
   } else {
     btnPompa.disabled = false;
     btnPompa.classList.toggle('pump-active', isPumpOn);
-    btnPompa.textContent = isPumpOn ? 'Matikan Pompa Sekarang' : 'Nyalakan Pompa Sekarang';
+    const label = isPumpOn ? 'Matikan Pompa Sekarang' : 'Nyalakan Pompa Sekarang';
+    const htmlActive = `${ICONS.power}<span>${label}</span>`;
+    if (btnPompa.innerHTML !== htmlActive) btnPompa.innerHTML = htmlActive;
   }
 }
 
 function updateInsight(kelembapan, kondisi) {
   let insight, ringkasan;
   if (kondisi === 'kering') {
-    ringkasan = 'Tanah sedang kering dan perlu perhatian.';
+    ringkasan = 'Tanah sedang kering dan memerlukan penyiraman.';
     insight = isAuto
-      ? `Kelembapan ${kelembapan}% berada di bawah batas ${batasMin}%. Pompa otomatis akan menyiram hingga mencapai ${batasMax}%.`
+      ? `Kelembapan ${kelembapan}% berada di bawah batas ${batasMin}%. Pompa otomatis menyiram hingga mencapai ${batasMax}%.`
       : `Kelembapan ${kelembapan}% di bawah batas ${batasMin}%. Mode manual aktif — nyalakan pompa untuk menyiram.`;
   } else if (kondisi === 'lembap') {
-    ringkasan = 'Kondisi kebun lembap dan aman.';
-    insight = `Kelembapan ${kelembapan}% sudah melewati batas ${batasMax}%. Penyiraman tidak diperlukan saat ini.`;
+    ringkasan = 'Kondisi kebun lembap dan cadangan air tanah mencukupi.';
+    insight = `Kelembapan ${kelembapan}% sudah mencapai target ${batasMax}%. Penyiraman dihentikan sementara untuk mencegah genangan.`;
   } else {
-    ringkasan = 'Kondisi kebun stabil.';
-    insight = `Kelembapan ${kelembapan}% berada di rentang ideal (${batasMin}%–${batasMax}%). Tanaman mendapat cukup air untuk tumbuh sehat.`;
+    ringkasan = 'Kondisi kebun stabil dan ideal.';
+    insight = `Kelembapan ${kelembapan}% berada di rentang ideal (${batasMin}%–${batasMax}%). Akar tanaman mendapat suplai air yang seimbang.`;
   }
-  if (isPumpOn) insight += ' Pompa sedang menyiram.';
+  if (isPumpOn) insight += ' Pompa saat ini sedang menyiram.';
   setText('teksInsight', insight);
   setText('teksRingkasan', `${ringkasan} Berikut ringkasan sistem penyiraman hari ini.`);
 }
 
 function warnaKelembapan(k) {
   if (k < batasMin) return '#dc2626';
-  if (k >= batasMax) return '#2e9e5e';
+  if (k >= batasMax) return '#15803d';
   return '#0284c7';
 }
 
@@ -502,13 +535,13 @@ function setCsvDownloadState(tersedia) {
     btn.setAttribute('aria-disabled', 'false');
     btn.setAttribute('href', '/download-csv');
     btn.setAttribute('download', 'data_log.csv');
-    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg> Unduh Log Data (.CSV)';
+    btn.innerHTML = `${ICONS.download}<span>Unduh Log Data (.CSV)</span>`;
   } else {
     btn.classList.add('is-disabled');
     btn.setAttribute('aria-disabled', 'true');
     btn.removeAttribute('href');
     btn.removeAttribute('download');
-    btn.innerHTML = '&#128274; Belum Ada Data (.CSV)';
+    btn.innerHTML = `${ICONS.lock}<span>Belum Ada Data (.CSV)</span>`;
   }
 }
 
@@ -521,7 +554,8 @@ function updateClock() {
 
 function setText(id, value) {
   const el = document.getElementById(id);
-  if (el) el.textContent = value;
+  const str = String(value);
+  if (el && el.textContent !== str) el.textContent = str;
 }
 
 function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
