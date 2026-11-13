@@ -221,14 +221,20 @@ function parseWaktu(raw) {
 
 /** Lebar minimum per label waktu (px) agar 0, 5, 10, ... tidak berdesakan */
 const PX_PER_LABEL = 30;
+let jumlahLabelTerakhir = 13;
 
 /** Lebarkan area grafik bila label banyak (area bisa digeser horizontal) */
 function aturLebarGrafik(jumlahLabel) {
+  if (typeof jumlahLabel === 'number' && jumlahLabel > 0) {
+    jumlahLabelTerakhir = jumlahLabel;
+  }
   const container = document.querySelector('.chart-container');
   const inner = document.getElementById('chartInner');
   if (!container || !inner) return;
-  const butuh = Math.min(jumlahLabel * PX_PER_LABEL + 60, 8000);
-  inner.style.width = butuh > container.clientWidth ? butuh + 'px' : '100%';
+  inner.style.width = '100%';
+  const lebarContainer = container.clientWidth || 0;
+  const butuh = Math.min(jumlahLabelTerakhir * PX_PER_LABEL + 60, 8000);
+  inner.style.width = butuh > lebarContainer ? butuh + 'px' : '100%';
 }
 
 function movingAverage(points, window) {
@@ -540,4 +546,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnUnduh.classList.contains('is-disabled')) e.preventDefault();
     });
   }
+
+  // Sesuaikan ulang lebar kontainer grafik saat orientasi layar / ukuran viewport berubah
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      aturLebarGrafik(jumlahLabelTerakhir);
+      if (chartInstance) chartInstance.resize();
+    }, 150);
+  });
 });
