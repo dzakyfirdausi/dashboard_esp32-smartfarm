@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Penyiraman Otomatis Intranet</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="chart.min.js"></script>
+</head>
+<body>
+  <div class="app">
+
+    <!-- ============ KONTEN UTAMA ============ -->
+    <div class="main" id="top">
+
+      <!-- HEADER -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="logo" title="Smart Irrigation · ESP32 (192.168.4.1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2.5c-3.5 4.2-6 7.6-6 11a6 6 0 0 0 12 0c0-3.4-2.5-6.8-6-11z"/>
+              <path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/>
+            </svg>
+          </div>
+          <div class="greeting">
+            <h1>Halo, Petani! <span class="wave">&#127793;</span></h1>
+            <p id="teksRingkasan">Memuat kondisi kebun... Berikut ringkasan sistem penyiraman hari ini.</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="pill clock-pill">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <span id="jamSekarang">--:--</span>
+          </div>
+          <div id="statusKoneksi" class="pill connection-badge connected">
+            <span class="dot"></span> <span id="teksKoneksi">TERHUBUNG</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ============ BARIS 1 ============ -->
+      <section class="row row-top">
+
+        <!-- HERO: ILUSTRASI + INFO AREA -->
+        <div class="card hero">
+          <div class="hero-badge">
+            <svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 10-5-10-5z"/><path d="m2 13 10 5 10-5"/></svg>
+          </div>
+
+          <div class="hero-art">
+            <svg viewBox="0 0 360 300" class="garden-svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="gSoilTop" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#8a5a3b"/><stop offset="1" stop-color="#6b4429"/></linearGradient>
+                <linearGradient id="gWoodL" x1="0" x2="1"><stop offset="0" stop-color="#c79a6b"/><stop offset="1" stop-color="#b3855a"/></linearGradient>
+                <linearGradient id="gWoodR" x1="0" x2="1"><stop offset="0" stop-color="#a2754c"/><stop offset="1" stop-color="#8d6440"/></linearGradient>
+                <linearGradient id="gLeaf" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4ade80"/><stop offset="1" stop-color="#15803d"/></linearGradient>
+                <linearGradient id="gLeaf2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#86efac"/><stop offset="1" stop-color="#22a35a"/></linearGradient>
+                <linearGradient id="gTank" x1="0" x2="1"><stop offset="0" stop-color="#e0f2fe"/><stop offset="1" stop-color="#93c5fd"/></linearGradient>
+              </defs>
+
+              <!-- bayangan -->
+              <ellipse cx="180" cy="250" rx="160" ry="34" fill="#000" opacity=".07"/>
+
+              <!-- bedengan (isometrik) -->
+              <polygon points="40,170 180,100 320,170 180,240" fill="url(#gSoilTop)"/>
+              <polygon points="40,170 180,240 180,268 40,198" fill="url(#gWoodL)"/>
+              <polygon points="180,240 320,170 320,198 180,268" fill="url(#gWoodR)"/>
+              <polyline points="40,170 180,240 320,170" fill="none" stroke="#d6ad80" stroke-width="3"/>
+              <!-- garis papan -->
+              <path d="M40 184 180 254M180 254 320 184" stroke="#000" stroke-opacity=".08" stroke-width="2"/>
+
+              <!-- alur tanah -->
+              <g stroke="#5a3820" stroke-width="2" opacity=".45">
+                <path d="M85 160 205 220"/><path d="M120 142 240 202"/><path d="M155 124 275 184"/>
+              </g>
+
+              <!-- tanaman (sayuran) -->
+              <g id="plantA">
+                <ellipse cx="0" cy="4" rx="16" ry="5" fill="#000" opacity=".15"/>
+                <path d="M0 2C-18 -4 -22 -22 -10 -30 -4 -20 0 -10 0 2z" fill="url(#gLeaf)"/>
+                <path d="M0 2C18 -4 22 -22 10 -30 4 -20 0 -10 0 2z" fill="url(#gLeaf2)"/>
+                <path d="M0 2C-6 -12 -4 -30 0 -38 4 -30 6 -12 0 2z" fill="url(#gLeaf)"/>
+              </g>
+              <use href="#plantA" x="100" y="160"/>
+              <use href="#plantA" x="135" y="178"/>
+              <use href="#plantA" x="170" y="196"/>
+              <use href="#plantA" x="135" y="142"/>
+              <use href="#plantA" x="170" y="160"/>
+              <use href="#plantA" x="205" y="178"/>
+              <use href="#plantA" x="170" y="124"/>
+              <use href="#plantA" x="205" y="142"/>
+              <use href="#plantA" x="240" y="160"/>
+              <!-- cabai -->
+              <g fill="#ef4444"><ellipse cx="245" cy="150" rx="3" ry="7" transform="rotate(20 245 150)"/><ellipse cx="174" cy="114" rx="3" ry="7" transform="rotate(-15 174 114)"/><ellipse cx="140" cy="168" rx="3" ry="6" transform="rotate(10 140 168)"/></g>
+
+              <!-- sensor kelembapan -->
+              <g>
+                <rect x="252" y="176" width="6" height="26" rx="2" fill="#475569"/>
+                <rect x="244" y="160" width="22" height="18" rx="4" fill="#1e293b"/>
+                <circle cx="255" cy="169" r="3" fill="#22c55e" class="blink"/>
+              </g>
+
+              <!-- tangki air + pipa + sprinkler -->
+              <g>
+                <ellipse cx="300" cy="140" rx="24" ry="8" fill="#bfdbfe"/>
+                <path d="M276 72v68a24 8 0 0 0 48 0V72z" fill="url(#gTank)"/>
+                <ellipse cx="300" cy="72" rx="24" ry="8" fill="#dbeafe" stroke="#93c5fd"/>
+                <rect x="281" y="96" width="38" height="32" rx="3" fill="#3b82f6" opacity=".35"/>
+                <path d="M300 148v8h-60v-30" fill="none" stroke="#64748b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="232" y="114" width="16" height="10" rx="3" fill="#334155"/>
+              </g>
+              <!-- tetes air (animasi saat pompa ON) -->
+              <g id="semprotanAir" class="spray">
+                <path d="M226 112c-10-10-26-12-40-8" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3 5"/>
+                <path d="M240 108c-4-14-16-24-32-28" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3 5"/>
+                <path d="M254 112c6-10 6-22 0-32" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3 5"/>
+              </g>
+            </svg>
+          </div>
+
+          <div class="hero-info">
+            <h3>Area 1: Kebun Sayuran</h3>
+            <div class="info-pair">
+              <div>
+                <span class="muted-sm">Batas Kering</span>
+                <strong id="infoMin">--%</strong>
+              </div>
+              <div>
+                <span class="muted-sm">Batas Lembap</span>
+                <strong id="infoMax">--%</strong>
+              </div>
+            </div>
+
+            <label class="muted-sm" for="presetTanaman">Profil Tanaman</label>
+            <select id="presetTanaman" onchange="updateCropPreset()">
+              <option value="30,50">Cabai / Sayuran Daun (30% - 50%)</option>
+              <option value="40,60">Tomat / Tanaman Buah (40% - 60%)</option>
+              <option value="15,30">Sukulen / Kaktus (15% - 30%)</option>
+            </select>
+
+            <div class="mini-progress">
+              <div class="mini-progress-head">
+                <span class="muted-sm">Kelembapan tanah</span>
+                <span class="muted-sm"><span id="valKelembapanMini">--</span>%</span>
+              </div>
+              <div class="progress-track">
+                <div id="barKelembapan" class="progress-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <h4>Insight Sistem</h4>
+            <p class="insight" id="teksInsight">Menunggu data sensor dari ESP32...</p>
+          </div>
+        </div>
+
+        <!-- KOLOM KANAN ATAS -->
+        <div class="top-right">
+          <div class="row-mini">
+            <!-- KONDISI TANAH -->
+            <div class="card stat-card">
+              <div class="stat-head">
+                <span class="icon-chip">
+                  <svg viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M12 13c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 15c0-3-2.5-5-6-5 0 3 2.5 5 6 5z"/></svg>
+                </span>
+                <span>Kondisi Tanah</span>
+              </div>
+              <div class="status-box" id="boxTanah">
+                <strong id="statusTanah">Memuat...</strong>
+              </div>
+              <p class="card-subtext" id="infoBatas">Batas: &lt;30% Kering | &ge;50% Lembap</p>
+            </div>
+
+            <!-- STATUS POMPA -->
+            <div class="card stat-card">
+              <div class="stat-head">
+                <span class="icon-chip">
+                  <svg viewBox="0 0 24 24"><path d="M12 3c-3 3.6-5 6.4-5 9a5 5 0 0 0 10 0c0-2.6-2-5.4-5-9z"/></svg>
+                </span>
+                <span>Status Pompa</span>
+              </div>
+              <div class="status-box" id="boxPompa">
+                <strong id="statusPompa">--</strong>
+              </div>
+              <p class="card-subtext">Relay GPIO 4 &middot; Mode <strong id="statusMode">--</strong></p>
+            </div>
+          </div>
+
+          <!-- GAUGE KELEMBAPAN -->
+          <div class="card gauge-card">
+            <div class="gauge-left">
+              <h3>Kelembapan Tanah</h3>
+              <p class="muted-sm">Sensor GPIO 33 &middot; ADC real-time</p>
+              <ul class="stat-list">
+                <li><strong id="statMax">--</strong><span>Maks</span></li>
+                <li><strong id="statMin">--</strong><span>Min</span></li>
+                <li><strong id="statAvg">--</strong><span>Rata-rata</span></li>
+              </ul>
+            </div>
+            <div class="gauge-wrap">
+              <svg viewBox="0 0 240 140" class="gauge">
+                <path class="gauge-ticks" d="M14 124 A106 106 0 0 1 226 124" pathLength="100"/>
+                <path class="gauge-track" d="M30 124 A90 90 0 0 1 210 124" pathLength="100"/>
+                <path id="gaugeArc" class="gauge-arc" d="M30 124 A90 90 0 0 1 210 124" pathLength="100" stroke-dasharray="0 100"/>
+                <circle id="gaugeKnob" cx="30" cy="124" r="8" class="gauge-knob"/>
+              </svg>
+              <div class="gauge-value">
+                <span id="valKelembapan">--</span><small>%</small>
+                <p class="muted-sm">Tingkat Kelembapan</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ BARIS 2 ============ -->
+      <section class="row row-bottom">
+
+        <div class="left-stack">
+          <!-- PANEL KONTROL -->
+          <div class="card" id="blokKontrol">
+            <div class="card-title">
+              <span class="icon-chip">
+                <svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+              </span>
+              <span>Panel Kontrol</span>
+            </div>
+            <div class="segmented">
+              <button id="btnAuto" class="seg-btn active" onclick="toggleOperationMode(1)">&#10003; Otomatis</button>
+              <button id="btnManual" class="seg-btn" onclick="toggleOperationMode(0)">Manual</button>
+            </div>
+            <button id="btnPompaManual" class="btn pump-btn" onclick="toggleManualPump()" disabled>
+              &#128274; Pompa Terkunci (Mode Otomatis)
+            </button>
+            <small class="helper-text">Profil tanaman mengubah batas hysteresis langsung tanpa flash ulang.</small>
+          </div>
+
+          <!-- MEMORI & LAPORAN -->
+          <div class="card" id="blokMemori">
+            <div class="card-title spread">
+              <span class="title-left">
+                <span class="icon-chip">
+                  <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+                </span>
+                <span>Memori Flash</span>
+              </span>
+              <span class="big-num"><span class="muted-sm">Sisa:</span> <strong id="sisaMemori">--%</strong></span>
+            </div>
+            <div class="tick-bars" id="barMemori"></div>
+            <a href="/download-csv" download="data_log.csv" class="btn download-btn">
+              <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+              Unduh Log Data (.CSV)
+            </a>
+          </div>
+        </div>
+
+        <!-- GRAFIK -->
+        <div class="card chart-card" id="blokGrafik">
+          <div class="chart-header">
+            <h3>Tren Kelembapan Tanah <span class="muted-sm">(log tiap 5 menit)</span></h3>
+            <div class="chart-actions">
+              <div class="legend">
+                <span><i class="lg lg-bar"></i>Kelembapan</span>
+                <span><i class="lg lg-line"></i>Rata-rata bergerak</span>
+                <span><i class="lg lg-dash"></i>Batas</span>
+              </div>
+              <button class="chip-btn" onclick="renderHistoryChart()">
+                Muat Ulang
+                <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="chart-stats">
+            <div class="cs-main"><strong id="chartLast">--</strong><small>%</small><span>Terakhir</span></div>
+            <div><strong id="chartMax">--</strong><small>%</small><span>Tertinggi</span></div>
+            <div><strong id="chartMin">--</strong><small>%</small><span>Terendah</span></div>
+            <div><strong id="chartAvg">--</strong><small>%</small><span>Rata-rata</span></div>
+          </div>
+
+          <div class="chart-container">
+            <div class="chart-inner" id="chartInner"><canvas id="grafikKelembapan"></canvas></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ NAVIGATION BAR BAWAH ============ -->
+    <nav class="bottom-nav">
+      <a href="#top" class="nav-link active">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="#blokKontrol" class="nav-link">
+        <svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+        <span>Kontrol</span>
+      </a>
+      <a href="#blokGrafik" class="nav-link">
+        <svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+        <span>Grafik</span>
+      </a>
+      <a href="#blokMemori" class="nav-link">
+        <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+        <span>Laporan</span>
+      </a>
+      <a href="/download-csv" download="data_log.csv" class="nav-link">
+        <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+        <span>Unduh CSV</span>
+      </a>
+    </nav>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
