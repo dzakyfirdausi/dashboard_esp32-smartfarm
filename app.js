@@ -8,6 +8,7 @@ let batasMax = 50;
 let chartInstance = null;
 let historyPoints = [];   // [{x: menit, y: kelembapan}]
 let isFetchingLive = false;
+let isFetchingCsv = false;
 
 const STEP_DASAR = 5;     // Sumbu waktu grafik selalu kelipatan 5 menit (0, 5, 10, 15, ...)
 const JUMLAH_BAR_MEMORI = 26;
@@ -21,8 +22,8 @@ const JUMLAH_BAR_MEMORI = 26;
  * Endpoint: GET /api/live
  * Format JSON: {"kelembapan": 45, "pompa": false, "auto": true, "min": 30, "max": 50, "memoriFree": 88}
  */
-function fetchLiveStatus() {
-  if (isFetchingLive) return;
+function fetchLiveStatus(force = false) {
+  if (!force && (isFetchingLive || isFetchingCsv)) return;
   isFetchingLive = true;
   fetch('/api/live')
     .then(response => {
@@ -129,7 +130,7 @@ function fetchLiveStatus() {
 function toggleOperationMode(modeValue) {
   const targetMode = modeValue ? 1 : 0;
   fetch(`/api/control?auto=${targetMode}`)
-    .then(res => { if (res.ok) fetchLiveStatus(); })
+    .then(res => { if (res.ok) fetchLiveStatus(true); })
     .catch(err => console.error('Gagal mengubah mode:', err));
 }
 
@@ -141,7 +142,7 @@ function toggleManualPump(pumpState) {
   if (isAuto) return;
   const targetPump = (pumpState !== undefined) ? pumpState : (isPumpOn ? 0 : 1);
   fetch(`/api/control?pump=${targetPump}`)
-    .then(res => { if (res.ok) fetchLiveStatus(); })
+    .then(res => { if (res.ok) fetchLiveStatus(true); })
     .catch(err => console.error('Gagal mengontrol pompa manual:', err));
 }
 
@@ -158,7 +159,7 @@ function updateCropPreset(minVal, maxVal) {
     max = parseInt(parts[1], 10);
   }
   fetch(`/api/preset?min=${min}&max=${max}`)
-    .then(res => { if (res.ok) fetchLiveStatus(); })
+    .then(res => { if (res.ok) fetchLiveStatus(true); })
     .catch(err => console.error('Gagal memperbarui preset tanaman:', err));
 }
 
@@ -167,7 +168,8 @@ function updateCropPreset(minVal, maxVal) {
  * Endpoint: GET /download-csv  (header: Waktu_Menit,Kelembapan)
  */
 function renderHistoryChart() {
-  isFetchingLive = true; // Tunda polling /api/live selama ESP32 mengirim berkas CSV
+  if (isFetchingCsv) return;
+  isFetchingCsv = true; // Tunda polling /api/live selama ESP32 mengirim berkas CSV
   fetch('/download-csv')
     .then(response => {
       if (!response.ok) throw new Error('Gagal memuat berkas CSV');
@@ -188,17 +190,19 @@ function renderHistoryChart() {
         points.push({ x, y });
       }
       historyPoints = points;
+      setCsvDownloadState(points.length > 0);
       updateHistoryStats(points);
       drawChart(points);
     })
     .catch(err => {
       console.warn('Data CSV belum tersedia, menampilkan grafik kosong:', err);
       historyPoints = [];
+      setCsvDownloadState(false);
       updateHistoryStats([]);
       drawChart([]);
     })
     .finally(() => {
-      isFetchingLive = false;
+      isFetchingCsv = false;
     });
 }
 
@@ -402,7 +406,8 @@ function updateGauge(nilai, warna) {
   const arc = document.getElementById('gaugeArc');
   const knob = document.getElementById('gaugeKnob');
   if (!arc || !knob) return;
-  arc.setAttribute('stroke-dasharray', `${nilai} 100`);
+  arc.setAttribute('stroke-dasharray', `${nilai} 999`);
+  arc.style.opacity = nilai > 0 ? '0.9' : '0';
   arc.style.stroke = warna;
   const sudut = Math.PI * (1 - nilai / 100);
   knob.setAttribute('cx', (120 + 90 * Math.cos(sudut)).toFixed(1));
@@ -483,6 +488,24 @@ function setConnectionStatus(isConnected) {
   text.textContent = isConnected ? 'TERHUBUNG' : 'TERPUTUS';
 }
 
+function setCsvDownloadState(tersedia) {
+  const btn = document.getElementById('btnUnduhCsv');
+  if (!btn) return;
+  if (tersedia) {
+    btn.classList.remove('is-disabled');
+    btn.setAttribute('aria-disabled', 'false');
+    btn.setAttribute('href', '/download-csv');
+    btn.setAttribute('download', 'data_log.csv');
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg> Unduh Log Data (.CSV)';
+  } else {
+    btn.classList.add('is-disabled');
+    btn.setAttribute('aria-disabled', 'true');
+    btn.removeAttribute('href');
+    btn.removeAttribute('download');
+    btn.innerHTML = '&#128274; Belum Ada Data (.CSV)';
+  }
+}
+
 function updateClock() {
   const now = new Date();
   const hari = now.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -510,11 +533,11 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(renderHistoryChart, 300000);   // grafik tiap 5 menit
   setInterval(updateClock, 15000);
 
-  // Sorot menu navigation bar bawah sesuai link yang diklik
-  document.querySelectorAll('.nav-link[href^="#"]').forEach(a => {
-    a.addEventListener('click', () => {
-      document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
-      a.classList.add('active');
+  // Cegah klik pada tombol unduh CSV jika berkas belum tersedia
+  const btnUnduh = document.getElementById('btnUnduhCsv');
+  if (btnUnduh) {
+    btnUnduh.addEventListener('click', (e) => {
+      if (btnUnduh.classList.contains('is-disabled')) e.preventDefault();
     });
-  });
+  }
 });
